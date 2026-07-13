@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LeetCode AI Assistant</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo">⚡</div>
+        <div class="brand-text">
+          <h1>LeetCode AI Assistant</h1>
+          <span class="subtitle">AI-powered solution generator</span>
+        </div>
+      </div>
+      <div class="status" id="backend-status">
+        <span class="status-dot offline" id="status-dot"></span>
+        <span id="status-label">Checking backend...</span>
+      </div>
+    </header>
+
+    <!-- Current Problem Card -->
+    <section class="card" id="problem-card">
+      <div class="card-label">Current Problem</div>
+      <div class="problem-title" id="problem-title">No problem detected</div>
+    </section>
+
+    <!-- Controls Card -->
+    <section class="card controls-card">
+      <div class="control-row">
+        <label for="language-select">Language</label>
+        <select id="language-select">
+          <option value="python">Python</option>
+          <option value="javascript">JavaScript</option>
+          <option value="java">Java</option>
+          <option value="cpp">C++</option>
+        </select>
+      </div>
+
+      <button id="generate-btn" class="primary-btn">
+        <span id="generate-btn-text">Generate Solution</span>
+        <span id="spinner" class="spinner hidden"></span>
+      </button>
+    </section>
+
+    <!-- Error Banner -->
+    <div id="error-banner" class="error-banner hidden"></div>
+
+    <!-- Result Card -->
+    <section class="card result-card hidden" id="result-card">
+      <div class="result-header">
+        <div class="card-label">Generated Solution</div>
+        <button id="copy-btn" class="copy-btn">Copy Code</button>
+      </div>
+
+      <pre class="code-viewer"><code id="code-output"></code></pre>
+
+      <div class="complexity-row">
+        <div class="complexity-pill">
+          <span class="pill-label">Time</span>
+          <span class="pill-value" id="time-complexity">-</span>
+        </div>
+        <div class="complexity-pill">
+          <span class="pill-label">Space</span>
+          <span class="pill-value" id="space-complexity">-</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>LeetCode AI Assistant · Provider-agnostic backend</span>
+    </footer>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -13,11 +13,19 @@ different class.
 Author: Senior Full-Stack AI Engineer
 """
 
+
 from abc import ABC, abstractmethod
 from typing import Dict
 import random
+import os
+import json
+
+from dotenv import load_dotenv
+from google import genai
 
 from prompt import build_solver_prompt
+
+load_dotenv()
 
 
 class SolverResult:
@@ -164,125 +172,70 @@ class MockSolver(BaseSolver):
         #         ...
     """
 
-    def solve(self, title: str, description: str, language: str = "python") -> SolverResult:
+class GeminiSolver(BaseSolver):
+    """
+    Gemini-powered solver implementation.
+
+    This solver uses the Google Gen AI SDK to generate real LeetCode
+    solutions while preserving the same SolverResult contract used by
+    MockSolver.
+    """
+
+    def __init__(self):
+        api_key = os.getenv("GEMINI_API_KEY")
+
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment.")
+
+        self.client = genai.Client(api_key=api_key)
+        self.model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+        
+        print(f"Using Gemini model: {self.model}")
+
+    def solve(
+        self,
+        title: str,
+        description: str,
+        language: str = "python"
+    ) -> SolverResult:
+
         # Build the prompt using the shared prompt-building utility.
-        # In MockSolver we don't actually send this anywhere, but we
-        # construct it to demonstrate where a real solver would use it.
-        _ = build_solver_prompt(title, description, language)
+        prompt = build_solver_prompt(title, description, language)
 
-        sample_code = self._generate_sample_code(title, language)
-        time_complexity = self._pick_time_complexity()
-        space_complexity = self._pick_space_complexity()
+        # Call Gemini
+        try:
 
-        return SolverResult(
-            code=sample_code,
-            time_complexity=time_complexity,
-            space_complexity=space_complexity,
-        )
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+            )
 
-    @staticmethod
-    def _generate_sample_code(title: str, language: str) -> str:
-        """Generate a deterministic sample solution for demo purposes."""
-        safe_title = (title or "Unknown Problem").strip()
+            response_text = response.text.strip()
 
-        if language.lower() == "python":
-            return f'''# Sample generated solution for: {safe_title}
-# NOTE: This is a MOCK solution generated without any real LLM.
-# Replace MockSolver in solver.py with a real provider to get
-# genuine problem-specific solutions.
+        except Exception as e:
+            return SolverResult(
+                code=f"Gemini API Error:\n{str(e)}",
+                time_complexity="Unknown",
+                space_complexity="Unknown",
+            )
 
-def solve(nums, target=None):
-    """
-    Mock solution template.
-    Uses a hash-map based approach as a generic placeholder pattern
-    commonly seen in array/two-sum style LeetCode problems.
-    """
-    seen = {{}}
-    for index, value in enumerate(nums):
-        complement = target - value if target is not None else 0
-        if complement in seen:
-            return [seen[complement], index]
-        seen[value] = index
-    return []
+        # Parse the JSON returned by Gemini
+        try:
+            data = json.loads(response_text)
 
+            return SolverResult(
+                code=data["code"],
+                time_complexity=data["time_complexity"],
+                space_complexity=data["space_complexity"],
+            )
 
-if __name__ == "__main__":
-    print(solve([2, 7, 11, 15], 9))
-'''
-        elif language.lower() in ("javascript", "js"):
-            return f'''// Sample generated solution for: {safe_title}
-// NOTE: This is a MOCK solution generated without any real LLM.
-
-function solve(nums, target) {{
-  const seen = new Map();
-  for (let i = 0; i < nums.length; i++) {{
-    const complement = target - nums[i];
-    if (seen.has(complement)) {{
-      return [seen.get(complement), i];
-    }}
-    seen.set(nums[i], i);
-  }}
-  return [];
-}}
-
-console.log(solve([2, 7, 11, 15], 9));
-'''
-        elif language.lower() in ("java",):
-            return f'''// Sample generated solution for: {safe_title}
-// NOTE: This is a MOCK solution generated without any real LLM.
-
-import java.util.HashMap;
-import java.util.Map;
-
-class Solution {{
-    public int[] solve(int[] nums, int target) {{
-        Map<Integer, Integer> seen = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {{
-            int complement = target - nums[i];
-            if (seen.containsKey(complement)) {{
-                return new int[] {{ seen.get(complement), i }};
-            }}
-            seen.put(nums[i], i);
-        }}
-        return new int[] {{}};
-    }}
-}}
-'''
-        elif language.lower() in ("cpp", "c++"):
-            return f'''// Sample generated solution for: {safe_title}
-// NOTE: This is a MOCK solution generated without any real LLM.
-
-#include <vector>
-#include <unordered_map>
-using namespace std;
-
-class Solution {{
-public:
-    vector<int> solve(vector<int>& nums, int target) {{
-        unordered_map<int, int> seen;
-        for (int i = 0; i < (int)nums.size(); i++) {{
-            int complement = target - nums[i];
-            if (seen.count(complement)) {{
-                return {{ seen[complement], i }};
-            }}
-            seen[nums[i]] = i;
-        }}
-        return {{}};
-    }}
-}};
-'''
-        else:
-            return f"// Mock solution for '{safe_title}' -- language '{language}' not specifically templated."
-
-    @staticmethod
-    def _pick_time_complexity() -> str:
-        # Deterministic-ish "sample" complexity, kept simple for the mock.
-        return "O(n)"
-
-    @staticmethod
-    def _pick_space_complexity() -> str:
-        return "O(n)"
-
+        except (json.JSONDecodeError, KeyError):
+            # Gracefully fall back if Gemini returns malformed JSON.
+            return SolverResult(
+                code=response_text,
+                time_complexity="Unknown",
+                space_complexity="Unknown",
+            )
 
 def get_solver() -> BaseSolver:
     """
@@ -300,4 +253,4 @@ def get_solver() -> BaseSolver:
 
     No other file in this project needs to change.
     """
-    return MockSolver()
+    return GeminiSolver()

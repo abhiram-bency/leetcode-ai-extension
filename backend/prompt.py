@@ -10,58 +10,38 @@ maintained in ONE place, regardless of which provider is used.
 
 
 def build_solver_prompt(title: str, description: str, language: str = "python") -> str:
-    """
-    Build a structured prompt instructing an LLM to solve a LeetCode-style
-    problem and return code + complexity analysis.
+    return f"""
+You are an expert competitive programmer.
 
-    This function is provider-agnostic: it just returns a string. Any
-    future solver (Gemini/OpenAI/Claude/Ollama/REST) can feed this string
-    directly into its respective chat/completions API.
+Solve the following LeetCode problem.
 
-    Args:
-        title: The problem title.
-        description: The full problem description, including examples
-                      and constraints if present.
-        language: Target programming language for the generated solution.
-
-    Returns:
-        A formatted prompt string.
-    """
-    safe_title = (title or "Untitled Problem").strip()
-    safe_description = (description or "No description provided.").strip()
-    safe_language = (language or "python").strip()
-
-    prompt = f"""You are an expert competitive programmer and software engineer.
-
-Solve the following LeetCode problem in {safe_language}.
-
-Problem Title:
-{safe_title}
+Title:
+{title}
 
 Problem Description:
-{safe_description}
+{description}
 
-Instructions:
-1. Provide a complete, correct, and efficient solution in {safe_language}.
-2. Include brief inline comments explaining key steps.
-3. After the code, clearly state:
-   - Time Complexity (Big-O)
-   - Space Complexity (Big-O)
-4. Do not include unrelated explanation outside of code + complexity.
+Write the solution in {language}.
 
-Respond in the following strict format:
+Return ONLY a valid JSON object.
 
-CODE:
-<code here>
+The JSON MUST have exactly these fields:
 
-TIME_COMPLEXITY:
-<time complexity here>
+{{
+  "code": "<complete {language} solution>",
+  "time_complexity": "<Big-O time complexity>",
+  "space_complexity": "<Big-O space complexity>"
+}}
 
-SPACE_COMPLEXITY:
-<space complexity here>
+Rules:
+- Return only JSON.
+- Do not wrap the JSON in Markdown.
+- Do not use triple backticks.
+- Do not include explanations.
+- Do not include comments outside the code.
+- The value of "code" must be a complete solution.
+- The response must be a single valid JSON object.
 """
-    return prompt
-
 
 def build_parsing_instructions() -> str:
     """
